@@ -4,14 +4,14 @@ import struct
 import io
 import tempfile
 
-WHITE = '\xff'
-BLACK = '\x00'
+WHITE = "\xff"
+BLACK = "\x00"
 THRESHOLD = 127
 TRANSLATE = [(1536, 255), (1152, 254), (768, 253), (384, 252), (251, 251)]
 
 
 def pixel_to_bw(p):
-    if p == (0, 0, 0, 0): # 0 alpha means white.
+    if p == (0, 0, 0, 0):  # 0 alpha means white.
         return WHITE
     elif p[0] > THRESHOLD or p[1] > THRESHOLD or p[2] > THRESHOLD:
         return WHITE
@@ -62,7 +62,7 @@ def crop_384(im):
 
 
 def convert_to_1bit(im):
-    return im.convert('1')
+    return im.convert("1")
 
 
 def rle_from_bw(bw_image):
@@ -100,30 +100,51 @@ def rle_from_bw(bw_image):
     return len(pixels), output
 
 
+def html_no_js_to_png(html):
+    import imgkit
+
+    imgkit_options = {"format": "png", "width": 384}
+    with tempfile.NamedTemporaryFile(suffix=".html") as f:
+        if isinstance(html, str):
+            f.write(html.encode("utf8"))
+        else:
+            f.write(html)
+        f.flush()
+        with tempfile.NamedTemporaryFile(suffix=".png") as p:
+            imgkit.from_url("file://" + f.name, p.name, options=imgkit_options)
+            print(p)
+            with open(p.name, "rb") as png:
+                data = io.BytesIO(png.read())
+    return data
+
+
 def html_to_png(html):
-    """ This works:
+    """This works:
     <html><body style="width: 384px; margin: 0;">
     <img src="https://dl.dropboxusercontent.com/u/165957/Escher.gif">
     </body></html>
     """
     from selenium import webdriver
+
     driver = None
     try:
-        caps = {'acceptSslCerts': True}
+        caps = {"acceptSslCerts": True}
         driver = webdriver.PhantomJS(
-            'phantomjs', desired_capabilities=caps,
-            service_args=['--ignore-ssl-errors=true', '--ssl-protocol=any'])
+            "phantomjs",
+            desired_capabilities=caps,
+            service_args=["--ignore-ssl-errors=true", "--ssl-protocol=any"],
+        )
         driver.set_window_size(384, 5)
 
         # note that the .html suffix is required to make phantomjs
         # pick up the mime-type and render correctly.
-        with tempfile.NamedTemporaryFile(suffix='.html') as f:
+        with tempfile.NamedTemporaryFile(suffix=".html") as f:
             if isinstance(html, str):
-                f.write(html.encode('utf8'))
+                f.write(html.encode("utf8"))
             else:
                 f.write(html)
             f.flush()
-            driver.get('file://' + f.name)
+            driver.get("file://" + f.name)
             data = io.BytesIO(driver.get_screenshot_as_png())
 
         return data
@@ -134,7 +155,7 @@ def html_to_png(html):
 
 def default_pipeline(html):
     """Encode HTML into an RLE image."""
-    data = html_to_png(html)
+    data = html_no_js_to_png(html)
     return png_pipeline(data)
 
 

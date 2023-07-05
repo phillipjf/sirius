@@ -45,6 +45,7 @@ dependencies = [
     "twitter==1.18.0",
     "websocket-client==0.56.0",
     "honcho",
+    "imgkit",
 ]
 
 [project.optional-dependencies]
